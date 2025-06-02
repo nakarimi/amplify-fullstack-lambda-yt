@@ -13,7 +13,7 @@ if [ -z "$1" ]; then
 fi
 
 GITHUB_TOKEN=$1
-STACK_NAME="NIP-TEST-todo-amplify"
+STACK_NAME="NIP-MVP-amplify"
 REPO_URL=${2:-"https://github.com/nakarimi/amplify-fullstack-lambda-yt"}
 
 # Check if stack exists and get Amplify App ID if it does

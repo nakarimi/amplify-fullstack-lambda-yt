@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Amplify App for NIP-TEST-todo-fe'
+Description: 'Amplify App for NIP-MVP-fe'
 
 Parameters:
   GitHubToken:
@@ -23,7 +23,7 @@ Resources:
   TodoAmplifyApp:
     Type: AWS::Amplify::App
     Properties:
-      Name: NIP-TEST-todo-fe
+      Name: NIP-MVP-fe
       Repository: !Ref RepositoryUrl
       OauthToken: !Ref GitHubToken
       Platform: WEB_COMPUTE
@@ -46,11 +46,11 @@ Resources:
               - node_modules/**/*
       EnvironmentVariables:
         - Name: NEXT_PUBLIC_APPSYNC_ENDPOINT
-          Value: !ImportValue NIP-TEST-Lambda-GraphQLApiUrl
+          Value: !ImportValue NIP-MVP-Lambda-GraphQLApiUrl
         - Name: NEXT_PUBLIC_AWS_REGION
           Value: us-east-1
         - Name: NEXT_PUBLIC_APPSYNC_API_KEY
-          Value: !ImportValue NIP-TEST-Lambda-GraphQLApiKey
+          Value: !ImportValue NIP-MVP-Lambda-GraphQLApiKey
 
   TodoAmplifyBranch:
     Type: AWS::Amplify::Branch
@@ -71,7 +71,7 @@ Outputs:
       - !GetAtt TodoAmplifyApp.AppId
       - !Ref ExistingAppId
     Export:
-      Name: NIP-TEST-Todo-AmplifyAppId
+      Name: NIP-MVP-AmplifyAppId
 
   AmplifyAppUrl:
     Description: Amplify App URL
@@ -80,4 +80,4 @@ Outputs:
       - !Sub https://${TodoAmplifyBranch.BranchName}.${TodoAmplifyApp.DefaultDomain}
       - !Sub https://main.${TodoAmplifyApp.DefaultDomain}
     Export:
-      Name: NIP-TEST-Todo-AmplifyAppUrl 
+      Name: NIP-MVP-AmplifyAppUrl
