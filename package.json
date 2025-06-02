@@ -12,6 +12,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
     "aws-amplify": "^6.15.0",
+    "graphql-tag": "^2.12.6",
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
