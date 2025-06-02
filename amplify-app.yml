@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Amplify App for NIP-TEST-todo-fe'
+
+Parameters:
+  GitHubToken:
+    Type: String
+    NoEcho: true
+    Description: GitHub token for repository access
+  ExistingAppId:
+    Type: String
+    Default: ''
+    Description: Existing Amplify App ID (leave empty for new app)
+  RepositoryUrl:
+    Type: String
+    Default: https://github.com/nakarimi/amplify-fullstack-lambda-yt
+    Description: GitHub repository URL
+
+Conditions:
+  IsNewApp: !Equals [!Ref ExistingAppId, '']
+  ShouldCreateBranch: !Equals [!Ref ExistingAppId, '']
+
+Resources:
+  TodoAmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: NIP-TEST-todo-fe
+      Repository: !Ref RepositoryUrl
+      OauthToken: !Ref GitHubToken
+      Platform: WEB_COMPUTE
+      BuildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - npm ci
+            build:
+              commands:
+                - npm run build
+          artifacts:
+            baseDirectory: .next
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
+      EnvironmentVariables:
+        - Name: NEXT_PUBLIC_APPSYNC_ENDPOINT
+          Value: !ImportValue NIP-TEST-Lambda-GraphQLApiUrl
+        - Name: NEXT_PUBLIC_AWS_REGION
+          Value: us-east-1
+        - Name: NEXT_PUBLIC_APPSYNC_API_KEY
+          Value: !ImportValue NIP-TEST-Lambda-GraphQLApiKey
+
+  TodoAmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Condition: ShouldCreateBranch
+    DependsOn: TodoAmplifyApp
+    Properties:
+      AppId: !GetAtt TodoAmplifyApp.AppId
+      BranchName: main
+      EnableAutoBuild: true
+      Framework: Next.js - SSR
+      Stage: PRODUCTION
+
+Outputs:
+  AmplifyAppId:
+    Description: Amplify App ID
+    Value: !If 
+      - IsNewApp
+      - !GetAtt TodoAmplifyApp.AppId
+      - !Ref ExistingAppId
+    Export:
+      Name: NIP-TEST-Todo-AmplifyAppId
+
+  AmplifyAppUrl:
+    Description: Amplify App URL
+    Value: !If
+      - IsNewApp
+      - !Sub https://${TodoAmplifyBranch.BranchName}.${TodoAmplifyApp.DefaultDomain}
+      - !Sub https://main.${TodoAmplifyApp.DefaultDomain}
+    Export:
+      Name: NIP-TEST-Todo-AmplifyAppUrl 
