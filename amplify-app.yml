@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Amplify App for NIP-MVP-fe'
+Description: 'Amplify App for NIP-MVP-Admin'
 
 Parameters:
   GitHubToken:
@@ -12,7 +12,7 @@ Parameters:
     Description: Existing Amplify App ID (leave empty for new app)
   RepositoryUrl:
     Type: String
-    Default: https://github.com/nakarimi/amplify-fullstack-lambda-yt
+    Default: https://github.com/gitnip-app/Front-end.git
     Description: GitHub repository URL
 
 Conditions:
@@ -23,7 +23,7 @@ Resources:
   TodoAmplifyApp:
     Type: AWS::Amplify::App
     Properties:
-      Name: NIP-MVP-fe
+      Name: NIP-MVP-Admin
       Repository: !Ref RepositoryUrl
       OauthToken: !Ref GitHubToken
       Platform: WEB_COMPUTE
@@ -71,7 +71,7 @@ Outputs:
       - !GetAtt TodoAmplifyApp.AppId
       - !Ref ExistingAppId
     Export:
-      Name: NIP-MVP-AmplifyAppId
+      Name: NIP-MVP-Admin-AmplifyAppId
 
   AmplifyAppUrl:
     Description: Amplify App URL
@@ -80,4 +80,4 @@ Outputs:
       - !Sub https://${TodoAmplifyBranch.BranchName}.${TodoAmplifyApp.DefaultDomain}
       - !Sub https://main.${TodoAmplifyApp.DefaultDomain}
     Export:
-      Name: NIP-MVP-AmplifyAppUrl
+      Name: NIP-MVP-Admin-AmplifyAppUrl
