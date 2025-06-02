@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchTodos, createNewTodo, toggleTodo } from '@/lib/graphql-client';
+import { fetchTodos, createNewTodo, toggleTodo, deleteTodo, subscribeToTodoCreation, subscribeToTodoUpdates, subscribeToTodoDeletion } from '@/lib/graphql-client';
 
 interface Todo {
   id: string;
@@ -16,6 +16,7 @@ export default function TodoList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTodoTitle, setNewTodoTitle] = useState('');
+  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected'>('connected');
 
   const loadTodos = async () => {
     try {
@@ -33,6 +34,44 @@ export default function TodoList() {
 
   useEffect(() => {
     loadTodos();
+
+    // Set up subscriptions
+    const createSubscription = subscribeToTodoCreation((newTodo) => {
+      setTodos(prevTodos => [...prevTodos, newTodo]);
+    });
+
+    const updateSubscription = subscribeToTodoUpdates((updatedTodo) => {
+      setTodos(prevTodos => 
+        prevTodos.map(todo => 
+          todo.id === updatedTodo.id ? updatedTodo : todo
+        )
+      );
+    });
+
+    const deleteSubscription = subscribeToTodoDeletion((id) => {
+      setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
+    });
+
+    // Handle subscription errors
+    const handleSubscriptionError = () => {
+      setRealtimeStatus('disconnected');
+      // Attempt to reconnect after 5 seconds
+      setTimeout(() => {
+        setRealtimeStatus('connected');
+        loadTodos();
+      }, 5000);
+    };
+
+    createSubscription.onError(handleSubscriptionError);
+    updateSubscription.onError(handleSubscriptionError);
+    deleteSubscription.onError(handleSubscriptionError);
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      createSubscription.unsubscribe();
+      updateSubscription.unsubscribe();
+      deleteSubscription.unsubscribe();
+    };
   }, []);
 
   const handleCreateTodo = async (e: React.FormEvent) => {
@@ -65,6 +104,17 @@ export default function TodoList() {
     }
   };
 
+  const handleDeleteTodo = async (id: string) => {
+    try {
+      setError(null);
+      await deleteTodo(id);
+      setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
+    } catch (err) {
+      console.error('Error in handleDeleteTodo:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete todo');
+    }
+  };
+
   if (loading) return <div className="text-center py-4">Loading todos...</div>;
   if (error) return (
     <div className="text-red-500 p-4 bg-red-50 rounded-lg">
@@ -81,7 +131,13 @@ export default function TodoList() {
 
   return (
     <div className="max-w-md mx-auto mt-8">
-      <h2 className="text-2xl font-bold mb-4">Todo List</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Todo List</h2>
+        <div className={`flex items-center gap-2 ${realtimeStatus === 'connected' ? 'text-green-500' : 'text-red-500'}`}>
+          <div className={`w-2 h-2 rounded-full ${realtimeStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'}`} />
+          <span className="text-sm">{realtimeStatus === 'connected' ? 'Real-time connected' : 'Reconnecting...'}</span>
+        </div>
+      </div>
       
       <form onSubmit={handleCreateTodo} className="mb-6">
         <div className="flex gap-2">
@@ -110,16 +166,24 @@ export default function TodoList() {
               key={todo.id}
               className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
             >
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={() => handleToggleTodo(todo.id, todo.completed)}
-                  className="h-4 w-4 cursor-pointer"
-                />
-                <span className={todo.completed ? 'line-through text-gray-500' : ''}>
-                  {todo.title}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={todo.completed}
+                    onChange={() => handleToggleTodo(todo.id, todo.completed)}
+                    className="h-4 w-4 cursor-pointer"
+                  />
+                  <span className={todo.completed ? 'line-through text-gray-500' : ''}>
+                    {todo.title}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDeleteTodo(todo.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  Delete
+                </button>
               </div>
               {todo.createdAt && (
                 <p className="text-sm text-gray-500 mt-1">

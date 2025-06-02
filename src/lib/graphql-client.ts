@@ -1,5 +1,6 @@
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/api';
+import { Observable } from 'rxjs';
 
 // Configure Amplify
 Amplify.configure({
@@ -40,6 +41,35 @@ interface UpdateTodoResponse {
   data: {
     updateTodo: Todo;
   };
+}
+
+interface OnCreateTodoResponse {
+  data: {
+    onCreateTodo: Todo;
+  };
+}
+
+interface OnUpdateTodoResponse {
+  data: {
+    onUpdateTodo: Todo;
+  };
+}
+
+interface DeleteTodoResponse {
+  data: {
+    deleteTodo: boolean;
+  };
+}
+
+interface OnDeleteTodoResponse {
+  data: {
+    onDeleteTodo: boolean;
+  };
+}
+
+interface SubscriptionHandle {
+  unsubscribe: () => void;
+  onError: (callback: (error: Error) => void) => void;
 }
 
 // Function to fetch todos
@@ -133,4 +163,129 @@ export const toggleTodo = async (id: string, completed: boolean) => {
     });
     throw error;
   }
+};
+
+// Function to subscribe to todo creation
+export const subscribeToTodoCreation = (callback: (todo: Todo) => void): SubscriptionHandle => {
+  let errorCallback: ((error: Error) => void) | undefined;
+  
+  const subscription = client.graphql({
+    query: /* GraphQL */ `
+      subscription OnCreateTodo {
+        onCreateTodo {
+          id
+          title
+          completed
+          createdAt
+          updatedAt
+        }
+      }
+    `
+  }) as Observable<OnCreateTodoResponse>;
+
+  const handle = subscription.subscribe({
+    next: ({ data }) => {
+      callback(data.onCreateTodo);
+    },
+    error: (error: Error) => {
+      console.error('Error in todo creation subscription:', error);
+      errorCallback?.(error);
+    }
+  });
+
+  return {
+    unsubscribe: () => handle.unsubscribe(),
+    onError: (callback) => {
+      errorCallback = callback;
+    }
+  };
+};
+
+// Function to subscribe to todo updates
+export const subscribeToTodoUpdates = (callback: (todo: Todo) => void): SubscriptionHandle => {
+  let errorCallback: ((error: Error) => void) | undefined;
+  
+  const subscription = client.graphql({
+    query: /* GraphQL */ `
+      subscription OnUpdateTodo {
+        onUpdateTodo {
+          id
+          title
+          completed
+          updatedAt
+        }
+      }
+    `
+  }) as Observable<OnUpdateTodoResponse>;
+
+  const handle = subscription.subscribe({
+    next: ({ data }) => {
+      callback(data.onUpdateTodo);
+    },
+    error: (error: Error) => {
+      console.error('Error in todo update subscription:', error);
+      errorCallback?.(error);
+    }
+  });
+
+  return {
+    unsubscribe: () => handle.unsubscribe(),
+    onError: (callback) => {
+      errorCallback = callback;
+    }
+  };
+};
+
+// Function to delete a todo
+export const deleteTodo = async (id: string) => {
+  try {
+    const response = await client.graphql({
+      query: /* GraphQL */ `
+        mutation DeleteTodo($id: ID!) {
+          deleteTodo(id: $id)
+        }
+      `,
+      variables: { 
+        id
+      }
+    }) as DeleteTodoResponse;
+    return response.data.deleteTodo;
+  } catch (error) {
+    console.error('Error deleting todo:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw error;
+  }
+};
+
+// Function to subscribe to todo deletion
+export const subscribeToTodoDeletion = (callback: (id: string) => void): SubscriptionHandle => {
+  let errorCallback: ((error: Error) => void) | undefined;
+  
+  const subscription = client.graphql({
+    query: /* GraphQL */ `
+      subscription OnDeleteTodo {
+        onDeleteTodo
+      }
+    `
+  }) as Observable<OnDeleteTodoResponse>;
+
+  const handle = subscription.subscribe({
+    next: ({ data }) => {
+      callback('reload');
+    },
+    error: (error: Error) => {
+      console.error('Error in todo deletion subscription:', error);
+      errorCallback?.(error);
+    }
+  });
+
+  return {
+    unsubscribe: () => handle.unsubscribe(),
+    onError: (callback) => {
+      errorCallback = callback;
+    }
+  };
 };
