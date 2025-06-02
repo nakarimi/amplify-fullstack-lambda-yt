@@ -273,7 +273,9 @@ export const subscribeToTodoDeletion = (callback: (id: string) => void): Subscri
   }) as Observable<OnDeleteTodoResponse>;
 
   const handle = subscription.subscribe({
-    next: ({ data }) => {
+    next: () => {
+      // Since we're getting a boolean, we need to get the ID from the context
+      // For now, we'll just reload all todos when a deletion occurs
       callback('reload');
     },
     error: (error: Error) => {

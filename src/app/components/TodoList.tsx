@@ -37,7 +37,13 @@ export default function TodoList() {
 
     // Set up subscriptions
     const createSubscription = subscribeToTodoCreation((newTodo) => {
-      setTodos(prevTodos => [...prevTodos, newTodo]);
+      setTodos(prevTodos => {
+        // Check if todo already exists
+        if (prevTodos.some(todo => todo.id === newTodo.id)) {
+          return prevTodos;
+        }
+        return [...prevTodos, newTodo];
+      });
     });
 
     const updateSubscription = subscribeToTodoUpdates((updatedTodo) => {
@@ -49,7 +55,12 @@ export default function TodoList() {
     });
 
     const deleteSubscription = subscribeToTodoDeletion((id) => {
-      setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
+      if (id === 'reload') {
+        // If we get a reload signal, fetch all todos
+        loadTodos();
+      } else {
+        setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
+      }
     });
 
     // Handle subscription errors
@@ -81,7 +92,13 @@ export default function TodoList() {
     try {
       setError(null);
       const newTodo = await createNewTodo(newTodoTitle);
-      setTodos(prevTodos => [...prevTodos, newTodo]);
+      setTodos(prevTodos => {
+        // Check if todo already exists
+        if (prevTodos.some(todo => todo.id === newTodo.id)) {
+          return prevTodos;
+        }
+        return [...prevTodos, newTodo];
+      });
       setNewTodoTitle('');
     } catch (err) {
       console.error('Error in handleCreateTodo:', err);
