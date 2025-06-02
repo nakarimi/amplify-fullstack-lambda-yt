@@ -1,5 +1,5 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Amplify App for NIP-MVP-Admin Front-end'
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Amplify App for NIP-MVP-Admin Front-end"
 
 Parameters:
   GitHubToken:
@@ -8,7 +8,7 @@ Parameters:
     Description: GitHub token for repository access
   ExistingAppId:
     Type: String
-    Default: ''
+    Default: ""
     Description: Existing Amplify App ID (leave empty for new app)
   RepositoryUrl:
     Type: String
@@ -16,8 +16,9 @@ Parameters:
     Description: GitHub repository URL
 
 Conditions:
-  IsNewApp: !Equals [!Ref ExistingAppId, '']
-  ShouldCreateBranch: !Equals [!Ref ExistingAppId, '']
+  IsNewApp: !Equals [!Ref ExistingAppId, ""]
+  ShouldCreateBranch:
+    !Equals [!Ref ExistingAppId, ""]
 
 Resources:
   TodoAmplifyApp:
@@ -66,7 +67,7 @@ Resources:
 Outputs:
   AmplifyAppId:
     Description: Amplify App ID
-    Value: !If 
+    Value: !If
       - IsNewApp
       - !GetAtt TodoAmplifyApp.AppId
       - !Ref ExistingAppId
