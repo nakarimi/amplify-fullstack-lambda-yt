@@ -20,7 +20,7 @@ Amplify.configure({
 // Create a client
 const client = generateClient();
 
-interface Todo {
+interface Item {
   id: string;
   title: string;
   completed: boolean;
@@ -28,45 +28,45 @@ interface Todo {
   updatedAt?: string;
 }
 
-interface TodoResponse {
+interface ItemResponse {
   data: {
-    todos: Todo[];
+    items: Item[];
   };
 }
 
-interface CreateTodoResponse {
+interface CreateItemResponse {
   data: {
-    createTodo: Todo;
+    createItem: Item;
   };
 }
 
-interface UpdateTodoResponse {
+interface UpdateItemResponse {
   data: {
-    updateTodo: Todo;
+    updateItem: Item;
   };
 }
 
-interface OnCreateTodoResponse {
+interface OnCreateItemResponse {
   data: {
-    onCreateTodo: Todo;
+    onCreateItem: Item;
   };
 }
 
-interface OnUpdateTodoResponse {
+interface OnUpdateItemResponse {
   data: {
-    onUpdateTodo: Todo;
+    onUpdateItem: Item;
   };
 }
 
-interface DeleteTodoResponse {
+interface DeleteItemResponse {
   data: {
-    deleteTodo: boolean;
+    deleteItem: boolean;
   };
 }
 
-interface OnDeleteTodoResponse {
+interface OnDeleteItemResponse {
   data: {
-    onDeleteTodo: boolean;
+    onDeleteItem: boolean;
   };
 }
 
@@ -77,10 +77,10 @@ interface SubscriptionHandle {
   ) => void;
 }
 
-// Function to fetch todos
-export const fetchTodos = async () => {
+// Function to fetch items
+export const fetchItems = async () => {
   try {
-    console.log("Fetching todos with config:", {
+    console.log("Fetching items with config:", {
       endpoint:
         process.env.NEXT_PUBLIC_APPSYNC_ENDPOINT,
       region: process.env.NEXT_PUBLIC_AWS_REGION,
@@ -90,8 +90,8 @@ export const fetchTodos = async () => {
 
     const response = (await client.graphql({
       query: /* GraphQL */ `
-        query GetTodos {
-          todos {
+        query GetItems {
+          items {
             id
             title
             completed
@@ -100,10 +100,10 @@ export const fetchTodos = async () => {
           }
         }
       `,
-    })) as TodoResponse;
-    return response.data.todos;
+    })) as ItemResponse;
+    return response.data.items;
   } catch (error) {
-    console.error("Error fetching todos:", {
+    console.error("Error fetching items:", {
       error,
       message:
         error instanceof Error
@@ -118,15 +118,15 @@ export const fetchTodos = async () => {
   }
 };
 
-// Function to create a todo
-export const createNewTodo = async (
+// Function to create an item
+export const createNewItem = async (
   title: string
 ) => {
   try {
     const response = (await client.graphql({
       query: /* GraphQL */ `
-        mutation CreateTodo($title: String!) {
-          createTodo(title: $title) {
+        mutation CreateItem($title: String!) {
+          createItem(title: $title) {
             id
             title
             completed
@@ -138,10 +138,10 @@ export const createNewTodo = async (
       variables: {
         title,
       },
-    })) as CreateTodoResponse;
-    return response.data.createTodo;
+    })) as CreateItemResponse;
+    return response.data.createItem;
   } catch (error) {
-    console.error("Error creating todo:", {
+    console.error("Error creating item:", {
       error,
       message:
         error instanceof Error
@@ -156,22 +156,16 @@ export const createNewTodo = async (
   }
 };
 
-// Function to toggle todo completion
-export const toggleTodo = async (
+// Function to toggle item completion
+export const toggleItem = async (
   id: string,
   completed: boolean
 ) => {
   try {
     const response = (await client.graphql({
       query: /* GraphQL */ `
-        mutation UpdateTodo(
-          $id: ID!
-          $completed: Boolean!
-        ) {
-          updateTodo(
-            id: $id
-            completed: $completed
-          ) {
+        mutation UpdateItem($id: ID!, $completed: Boolean!) {
+          updateItem(id: $id, completed: $completed) {
             id
             title
             completed
@@ -183,10 +177,10 @@ export const toggleTodo = async (
         id,
         completed,
       },
-    })) as UpdateTodoResponse;
-    return response.data.updateTodo;
+    })) as UpdateItemResponse;
+    return response.data.updateItem;
   } catch (error) {
-    console.error("Error updating todo:", {
+    console.error("Error updating item:", {
       error,
       message:
         error instanceof Error
@@ -201,9 +195,39 @@ export const toggleTodo = async (
   }
 };
 
-// Function to subscribe to todo creation
-export const subscribeToTodoCreation = (
-  callback: (todo: Todo) => void
+// Function to delete an item
+export const deleteItem = async (id: string) => {
+  try {
+    const response = (await client.graphql({
+      query: /* GraphQL */ `
+        mutation DeleteItem($id: ID!) {
+          deleteItem(id: $id)
+        }
+      `,
+      variables: {
+        id,
+      },
+    })) as DeleteItemResponse;
+    return response.data.deleteItem;
+  } catch (error) {
+    console.error("Error deleting item:", {
+      error,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unknown error",
+      stack:
+        error instanceof Error
+          ? error.stack
+          : undefined,
+    });
+    throw error;
+  }
+};
+
+// Subscription for item creation
+export const subscribeToItemCreation = (
+  callback: (item: Item) => void
 ): SubscriptionHandle => {
   let errorCallback:
     | ((error: Error) => void)
@@ -211,8 +235,8 @@ export const subscribeToTodoCreation = (
 
   const subscription = client.graphql({
     query: /* GraphQL */ `
-      subscription OnCreateTodo {
-        onCreateTodo {
+      subscription OnCreateItem {
+        onCreateItem {
           id
           title
           completed
@@ -221,15 +245,15 @@ export const subscribeToTodoCreation = (
         }
       }
     `,
-  }) as Observable<OnCreateTodoResponse>;
+  }) as Observable<OnCreateItemResponse>;
 
   const handle = subscription.subscribe({
     next: ({ data }) => {
-      callback(data.onCreateTodo);
+      callback(data.onCreateItem);
     },
     error: (error: Error) => {
       console.error(
-        "Error in todo creation subscription:",
+        "Error in item creation subscription:",
         error
       );
       errorCallback?.(error);
@@ -244,9 +268,9 @@ export const subscribeToTodoCreation = (
   };
 };
 
-// Function to subscribe to todo updates
-export const subscribeToTodoUpdates = (
-  callback: (todo: Todo) => void
+// Subscription for item updates
+export const subscribeToItemUpdates = (
+  callback: (item: Item) => void
 ): SubscriptionHandle => {
   let errorCallback:
     | ((error: Error) => void)
@@ -254,8 +278,8 @@ export const subscribeToTodoUpdates = (
 
   const subscription = client.graphql({
     query: /* GraphQL */ `
-      subscription OnUpdateTodo {
-        onUpdateTodo {
+      subscription OnUpdateItem {
+        onUpdateItem {
           id
           title
           completed
@@ -263,15 +287,15 @@ export const subscribeToTodoUpdates = (
         }
       }
     `,
-  }) as Observable<OnUpdateTodoResponse>;
+  }) as Observable<OnUpdateItemResponse>;
 
   const handle = subscription.subscribe({
     next: ({ data }) => {
-      callback(data.onUpdateTodo);
+      callback(data.onUpdateItem);
     },
     error: (error: Error) => {
       console.error(
-        "Error in todo update subscription:",
+        "Error in item update subscription:",
         error
       );
       errorCallback?.(error);
@@ -286,38 +310,8 @@ export const subscribeToTodoUpdates = (
   };
 };
 
-// Function to delete a todo
-export const deleteTodo = async (id: string) => {
-  try {
-    const response = (await client.graphql({
-      query: /* GraphQL */ `
-        mutation DeleteTodo($id: ID!) {
-          deleteTodo(id: $id)
-        }
-      `,
-      variables: {
-        id,
-      },
-    })) as DeleteTodoResponse;
-    return response.data.deleteTodo;
-  } catch (error) {
-    console.error("Error deleting todo:", {
-      error,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Unknown error",
-      stack:
-        error instanceof Error
-          ? error.stack
-          : undefined,
-    });
-    throw error;
-  }
-};
-
-// Function to subscribe to todo deletion
-export const subscribeToTodoDeletion = (
+// Subscription for item deletion
+export const subscribeToItemDeletion = (
   callback: (id: string) => void
 ): SubscriptionHandle => {
   let errorCallback:
@@ -326,21 +320,21 @@ export const subscribeToTodoDeletion = (
 
   const subscription = client.graphql({
     query: /* GraphQL */ `
-      subscription OnDeleteTodo {
-        onDeleteTodo
+      subscription OnDeleteItem {
+        onDeleteItem
       }
     `,
-  }) as Observable<OnDeleteTodoResponse>;
+  }) as Observable<OnDeleteItemResponse>;
 
   const handle = subscription.subscribe({
     next: () => {
       // Since we're getting a boolean, we need to get the ID from the context
-      // For now, we'll just reload all todos when a deletion occurs
+      // For now, we'll just reload all items when a deletion occurs
       callback("reload");
     },
     error: (error: Error) => {
       console.error(
-        "Error in todo deletion subscription:",
+        "Error in item deletion subscription:",
         error
       );
       errorCallback?.(error);

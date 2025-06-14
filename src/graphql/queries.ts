@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
-export const listTodos = gql`
-  query ListTodos {
-    listTodos {
+export const listItems = gql`
+  query ListItems {
+    listItems {
       items {
         id
         title
@@ -14,9 +14,9 @@ export const listTodos = gql`
   }
 `;
 
-export const createTodo = gql`
-  mutation CreateTodo($input: CreateTodoInput!) {
-    createTodo(input: $input) {
+export const createItem = gql`
+  mutation CreateItem($input: CreateItemInput!) {
+    createItem(input: $input) {
       id
       title
       completed
@@ -26,9 +26,9 @@ export const createTodo = gql`
   }
 `;
 
-export const updateTodo = gql`
-  mutation UpdateTodo($input: UpdateTodoInput!) {
-    updateTodo(input: $input) {
+export const updateItem = gql`
+  mutation UpdateItem($input: UpdateItemInput!) {
+    updateItem(input: $input) {
       id
       title
       completed
@@ -37,9 +37,9 @@ export const updateTodo = gql`
   }
 `;
 
-export const deleteTodo = gql`
-  mutation DeleteTodo($input: DeleteTodoInput!) {
-    deleteTodo(input: $input) {
+export const deleteItem = gql`
+  mutation DeleteItem($input: DeleteItemInput!) {
+    deleteItem(input: $input) {
       id
     }
   }

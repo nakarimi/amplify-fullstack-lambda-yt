@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import {
-  fetchTodos,
-  createNewTodo,
-  toggleTodo,
-  deleteTodo,
-  subscribeToTodoCreation,
-  subscribeToTodoUpdates,
-  subscribeToTodoDeletion,
+  fetchItems,
+  createNewItem,
+  toggleItem,
+  deleteItem,
+  subscribeToItemCreation,
+  subscribeToItemUpdates,
+  subscribeToItemDeletion,
 } from "@/lib/graphql-client";
 
-interface Todo {
+interface Item {
   id: string;
   title: string;
   completed: boolean;
@@ -20,79 +20,58 @@ interface Todo {
 }
 
 export default function TodoList() {
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<
-    string | null
-  >(null);
-  const [newTodoTitle, setNewTodoTitle] =
-    useState("");
-  const [realtimeStatus, setRealtimeStatus] =
-    useState<"connected" | "disconnected">(
-      "connected"
-    );
+  const [error, setError] = useState<string | null>(null);
+  const [newItemTitle, setNewItemTitle] = useState("");
+  const [realtimeStatus, setRealtimeStatus] = useState<"connected" | "disconnected">("connected");
 
-  const loadTodos = async () => {
+  const loadItems = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchTodos();
-      setTodos(data);
+      const data = await fetchItems();
+      setItems(data);
     } catch (err) {
-      console.error("Error in loadTodos:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load todos"
-      );
+      console.error("Error in loadItems:", err);
+      setError(err instanceof Error ? err.message : "Failed to load items");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadTodos();
+    loadItems();
 
     // Set up subscriptions
-    const createSubscription =
-      subscribeToTodoCreation((newTodo) => {
-        setTodos((prevTodos) => {
-          // Check if todo already exists
-          if (
-            prevTodos.some(
-              (todo) => todo.id === newTodo.id
-            )
-          ) {
-            return prevTodos;
-          }
-          return [...prevTodos, newTodo];
-        });
-      });
-
-    const updateSubscription =
-      subscribeToTodoUpdates((updatedTodo) => {
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) =>
-            todo.id === updatedTodo.id
-              ? updatedTodo
-              : todo
-          )
-        );
-      });
-
-    const deleteSubscription =
-      subscribeToTodoDeletion((id) => {
-        if (id === "reload") {
-          // If we get a reload signal, fetch all todos
-          loadTodos();
-        } else {
-          setTodos((prevTodos) =>
-            prevTodos.filter(
-              (todo) => todo.id !== id
-            )
-          );
+    const createSubscription = subscribeToItemCreation((newItem) => {
+      setItems((prevItems) => {
+        // Check if item already exists
+        if (prevItems.some((item) => item.id === newItem.id)) {
+          return prevItems;
         }
+        return [...prevItems, newItem];
       });
+    });
+
+    const updateSubscription = subscribeToItemUpdates((updatedItem) => {
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === updatedItem.id ? updatedItem : item
+        )
+      );
+    });
+
+    const deleteSubscription = subscribeToItemDeletion((id) => {
+      if (id === "reload") {
+        // If we get a reload signal, fetch all items
+        loadItems();
+      } else {
+        setItems((prevItems) =>
+          prevItems.filter((item) => item.id !== id)
+        );
+      }
+    });
 
     // Handle subscription errors
     const handleSubscriptionError = () => {
@@ -100,19 +79,13 @@ export default function TodoList() {
       // Attempt to reconnect after 5 seconds
       setTimeout(() => {
         setRealtimeStatus("connected");
-        loadTodos();
+        loadItems();
       }, 5000);
     };
 
-    createSubscription.onError(
-      handleSubscriptionError
-    );
-    updateSubscription.onError(
-      handleSubscriptionError
-    );
-    deleteSubscription.onError(
-      handleSubscriptionError
-    );
+    createSubscription.onError(handleSubscriptionError);
+    updateSubscription.onError(handleSubscriptionError);
+    deleteSubscription.onError(handleSubscriptionError);
 
     // Cleanup subscriptions on unmount
     return () => {
@@ -122,93 +95,59 @@ export default function TodoList() {
     };
   }, []);
 
-  const handleCreateTodo = async (
-    e: React.FormEvent
-  ) => {
+  const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTodoTitle.trim()) return;
+    if (!newItemTitle.trim()) return;
 
     try {
       setError(null);
-      const newTodo =
-        await createNewTodo(newTodoTitle);
-      setTodos((prevTodos) => {
-        // Check if todo already exists
-        if (
-          prevTodos.some(
-            (todo) => todo.id === newTodo.id
-          )
-        ) {
-          return prevTodos;
+      const newItem = await createNewItem(newItemTitle);
+      setItems((prevItems) => {
+        // Check if item already exists
+        if (prevItems.some((item) => item.id === newItem.id)) {
+          return prevItems;
         }
-        return [...prevTodos, newTodo];
+        return [...prevItems, newItem];
       });
-      setNewTodoTitle("");
+      setNewItemTitle("");
     } catch (err) {
-      console.error(
-        "Error in handleCreateTodo:",
-        err
-      );
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create todo"
-      );
+      console.error("Error in handleCreateItem:", err);
+      setError(err instanceof Error ? err.message : "Failed to create item");
     }
   };
 
-  const handleToggleTodo = async (
-    id: string,
-    completed: boolean
-  ) => {
+  const handleToggleItem = async (id: string, completed: boolean) => {
     try {
       setError(null);
-      const updatedTodo = await toggleTodo(
-        id,
-        !completed
-      );
-      setTodos((prevTodos) =>
-        prevTodos.map((todo) =>
-          todo.id === id ? updatedTodo : todo
+      const updatedItem = await toggleItem(id, !completed);
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === id ? updatedItem : item
         )
       );
     } catch (err) {
-      console.error(
-        "Error in handleToggleTodo:",
-        err
-      );
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to update todo"
-      );
+      console.error("Error in handleToggleItem:", err);
+      setError(err instanceof Error ? err.message : "Failed to update item");
     }
   };
 
-  const handleDeleteTodo = async (id: string) => {
+  const handleDeleteItem = async (id: string) => {
     try {
       setError(null);
-      await deleteTodo(id);
-      setTodos((prevTodos) =>
-        prevTodos.filter((todo) => todo.id !== id)
+      await deleteItem(id);
+      setItems((prevItems) =>
+        prevItems.filter((item) => item.id !== id)
       );
     } catch (err) {
-      console.error(
-        "Error in handleDeleteTodo:",
-        err
-      );
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to delete todo"
-      );
+      console.error("Error in handleDeleteItem:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete item");
     }
   };
 
   if (loading)
     return (
       <div className="text-center py-4">
-        Loading todos...
+        Loading items...
       </div>
     );
   if (error)
@@ -217,7 +156,7 @@ export default function TodoList() {
         <p className="font-semibold">Error:</p>
         <p>{error}</p>
         <button
-          onClick={loadTodos}
+          onClick={loadItems}
           className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
         >
           Retry
@@ -229,7 +168,7 @@ export default function TodoList() {
     <div className="max-w-md mx-auto mt-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">
-          Todo List
+          Item List
         </h2>
         <div
           className={`flex items-center gap-2 ${realtimeStatus === "connected" ? "text-green-500" : "text-red-500"}`}
@@ -246,82 +185,69 @@ export default function TodoList() {
       </div>
 
       <form
-        onSubmit={handleCreateTodo}
+        onSubmit={handleCreateItem}
         className="mb-6"
       >
         <div className="flex gap-2">
           <input
             type="text"
-            value={newTodoTitle}
-            onChange={(e) =>
-              setNewTodoTitle(e.target.value)
-            }
-            placeholder="New todo title"
-            className="flex-1 p-2 border rounded"
+            value={newItemTitle}
+            onChange={(e) => setNewItemTitle(e.target.value)}
+            placeholder="Add new item..."
+            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Add
           </button>
         </div>
       </form>
 
-      {todos.length === 0 ? (
-        <p className="text-center text-gray-500">
-          No todos found
-        </p>
+      {items.length === 0 ? (
+        <div className="text-center text-gray-500 py-4">
+          No items found
+        </div>
       ) : (
         <ul className="space-y-2">
-          {todos.map((todo) => (
+          {items.map((item) => (
             <li
-              key={todo.id}
-              className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
+              key={item.id}
+              className="flex items-center justify-between p-4 bg-white rounded-lg shadow"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={todo.completed}
-                    onChange={() =>
-                      handleToggleTodo(
-                        todo.id,
-                        todo.completed
-                      )
-                    }
-                    className="h-4 w-4 cursor-pointer"
-                  />
-                  <span
-                    className={
-                      todo.completed
-                        ? "line-through text-gray-500"
-                        : ""
-                    }
-                  >
-                    {todo.title}
-                  </span>
-                </div>
-                <button
-                  onClick={() =>
-                    handleDeleteTodo(todo.id)
-                  }
-                  className="text-red-500 hover:text-red-700"
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={item.completed}
+                  onChange={() => handleToggleItem(item.id, item.completed)}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                />
+                <span
+                  className={`${
+                    item.completed
+                      ? "line-through text-gray-500"
+                      : ""
+                  }`}
                 >
-                  Delete
-                </button>
+                  {item.title}
+                </span>
               </div>
-              {todo.createdAt && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Created:{" "}
-                  {new Date(
-                    todo.createdAt
-                  ).toLocaleDateString()}
-                </p>
-              )}
+              <button
+                onClick={() => handleDeleteItem(item.id)}
+                className="text-red-500 hover:text-red-700"
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {items.length > 0 && (
+        <div className="mt-4 text-sm text-gray-500">
+          {items.length} {items.length === 1 ? "item" : "items"} total
+        </div>
       )}
     </div>
   );
